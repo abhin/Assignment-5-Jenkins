@@ -1,25 +1,32 @@
 def buildTag = ''
 
-def buildDockerImage(tag) {
-    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        try {
-            sh '''
-                /usr/bin/docker build -t assment5app:${tag} .
-                echo "$DOCKER_PASS" | /usr/bin/docker login -u "$DOCKER_USER" --password-stdin
-                /usr/bin/docker tag assment5app:${tag} $DOCKER_USER/assment5app:${tag}
-                /usr/bin/docker push $DOCKER_USER/assment5app:${tag}
-            '''
-        } catch (Exception e) {
-            error "Docker commands failed: ${e}"
+pipeline {
+    agent {
+        kubernetes {
+            label 'kaniko-build-pod'
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:latest
+    args:
+      - --cache=true
+    volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker
+  volumes:
+    - name: kaniko-secret
+      secret:
+        secretName: regcred  # Kubernetes secret with Docker credentials
+"""
         }
     }
-}
-
-pipeline {
-    agent any
 
     environment {
-        DOCKER_USER = ''
+        DOCKER_USER = '' // Will be set from credentials below
+        // DOCKER_PASS not needed explicitly here, kaniko uses mounted secret
     }
 
     stages {
@@ -52,9 +59,18 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    script {
-                        env.DOCKER_USER = DOCKER_USER
-                        buildDockerImage(buildTag)
+                    container('kaniko') {
+                        script {
+                            // Set DOCKER_USER env var for image tagging
+                            env.DOCKER_USER = DOCKER_USER
+                            sh """
+                            /kaniko/executor \\
+                              --dockerfile=Dockerfile \\
+                              --context=dir://\$(pwd) \\
+                              --destination=${DOCKER_USER}/assment5app:${buildTag} \\
+                              --cache=true
+                            """
+                        }
                     }
                 }
             }
@@ -64,9 +80,9 @@ pipeline {
             steps {
                 script {
                     sh """
-                        helm upgrade --install assment5app ./helm-chart \
-                        --set image.tag=${buildTag} \
-                        --set image.repository=${env.DOCKER_USER}/assment5app
+                        helm upgrade --install assment5app ./helm-chart \\
+                        --set image.tag=${buildTag} \\
+                        --set image.repository=${DOCKER_USER}/assment5app
                     """
                 }
             }
