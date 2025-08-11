@@ -16,10 +16,10 @@ def buildDockerImage(tag) {
 }
 
 pipeline {
-    agent any  // Use any available agent (e.g., built-in node)
+    agent any // Use any available online agent
 
     environment {
-        DOCKER_USER = '' // Will be set in build stage
+        DOCKER_USER = ''
     }
 
     stages {
@@ -30,12 +30,6 @@ pipeline {
                     buildTag = "${date}.${env.BUILD_NUMBER}"
                     currentBuild.displayName = buildTag
                 }
-            }
-        }
-
-        stage('Use Tag') {
-            steps {
-                echo "The build tag is: ${buildTag}"
             }
         }
 
@@ -59,7 +53,6 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    // Use DOCKER_USER from environment for Helm command
                     sh """
                         helm upgrade --install assment5app ./helm-chart \
                         --set image.tag=${buildTag} \
@@ -72,10 +65,10 @@ pipeline {
 
     post {
         success {
-            echo 'All images built, pushed, and app deployed successfully.'
+            echo 'Build, push, and deploy succeeded!'
         }
         failure {
-            echo 'Pipeline failed.'
+            echo 'Pipeline failed!'
         }
     }
 }
