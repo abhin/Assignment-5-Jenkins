@@ -23,6 +23,16 @@ pipeline {
     }
 
     stages {
+        stage('Check Node & Docker') {
+            steps {
+                sh '''
+                    echo "Running on node: $(hostname)"
+                    echo "Docker location: $(which docker || echo 'docker not found')"
+                    docker --version || echo 'docker command not available'
+                '''
+            }
+        }
+
         stage('Generate Tag') {
             steps {
                 script {
