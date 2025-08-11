@@ -2,12 +2,16 @@ def buildTag = ''
 
 def buildDockerImage(tag) {
     withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        sh """
-            docker build -t sampleapp:${tag} .
-            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-            docker tag sampleapp:${tag} ${DOCKER_USER}/sampleapp:${tag}
-            docker push ${DOCKER_USER}/sampleapp:${tag}
-        """
+        try {
+            sh """
+                docker build -t assment5app:${tag} .
+                echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                docker tag assment5app:${tag} ${DOCKER_USER}/assment5app:${tag}
+                docker push ${DOCKER_USER}/assment5app:${tag}
+            """
+        } catch (Exception e) {
+            error "Docker commands failed: ${e}"
+        }
     }
 }
 
@@ -35,7 +39,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/gititc778/sampleApp.git', branch: 'master'
+                git url: 'https://github.com/abhin/Assignment-5-Jenkins.git', branch: 'master'
             }
         }
 
@@ -50,18 +54,22 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    input message: "Do you want to proceed with Kubernetes deployment?", ok: 'Deploy'
-                }
-
-                withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
-                    script {
-                        sh """
-                            sed -i "s/IMAGE_TAG/${buildTag}/g" deployment.yaml
-                            kubectl apply -f deployment.yaml
-                        """
-                    }
+                    sh """
+                        helm upgrade --install assment5app ./helm-chart \
+                        --set image.tag=${buildTag} \
+                        --set image.repository=${DOCKER_USER}/assment5app
+                    """
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'All images built, pushed, and app deployed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
