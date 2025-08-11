@@ -3,12 +3,12 @@ def buildTag = ''
 def buildDockerImage(tag) {
     withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
         try {
-            sh """
+            sh '''
                 docker build -t assment5app:${tag} .
-                echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                docker tag assment5app:${tag} ${DOCKER_USER}/assment5app:${tag}
-                docker push ${DOCKER_USER}/assment5app:${tag}
-            """
+                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                docker tag assment5app:${tag} $DOCKER_USER/assment5app:${tag}
+                docker push $DOCKER_USER/assment5app:${tag}
+            '''
         } catch (Exception e) {
             error "Docker commands failed: ${e}"
         }
@@ -16,7 +16,11 @@ def buildDockerImage(tag) {
 }
 
 pipeline {
-    agent { label 'build-agent' }
+    agent any  // Use any available agent (e.g., built-in node)
+
+    environment {
+        DOCKER_USER = '' // Will be set in build stage
+    }
 
     stages {
         stage('Generate Tag') {
@@ -31,9 +35,7 @@ pipeline {
 
         stage('Use Tag') {
             steps {
-                script {
-                    echo "The build tag is: ${buildTag}"
-                }
+                echo "The build tag is: ${buildTag}"
             }
         }
 
@@ -45,8 +47,11 @@ pipeline {
 
         stage('Build & Push Docker Image') {
             steps {
-                script {
-                    buildDockerImage(buildTag)
+                withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        env.DOCKER_USER = DOCKER_USER
+                        buildDockerImage(buildTag)
+                    }
                 }
             }
         }
@@ -54,10 +59,11 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
+                    // Use DOCKER_USER from environment for Helm command
                     sh """
                         helm upgrade --install assment5app ./helm-chart \
                         --set image.tag=${buildTag} \
-                        --set image.repository=${DOCKER_USER}/assment5app
+                        --set image.repository=${env.DOCKER_USER}/assment5app
                     """
                 }
             }
