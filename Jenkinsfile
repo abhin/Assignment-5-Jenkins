@@ -4,10 +4,10 @@ def buildDockerImage(tag) {
     withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
         try {
             sh '''
-                docker build -t assment5app:${tag} .
-                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                docker tag assment5app:${tag} $DOCKER_USER/assment5app:${tag}
-                docker push $DOCKER_USER/assment5app:${tag}
+                /usr/bin/docker build -t assment5app:${tag} .
+                echo "$DOCKER_PASS" | /usr/bin/docker login -u "$DOCKER_USER" --password-stdin
+                /usr/bin/docker tag assment5app:${tag} $DOCKER_USER/assment5app:${tag}
+                /usr/bin/docker push $DOCKER_USER/assment5app:${tag}
             '''
         } catch (Exception e) {
             error "Docker commands failed: ${e}"
@@ -16,7 +16,7 @@ def buildDockerImage(tag) {
 }
 
 pipeline {
-    agent any // Use any available online agent
+    agent any
 
     environment {
         DOCKER_USER = ''
