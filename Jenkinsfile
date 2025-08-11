@@ -16,7 +16,7 @@ def buildDockerImage(tag) {
 }
 
 pipeline {
-    agent { label 'Built-In Node' }
+    agent { label 'build-agent' }
 
     stages {
         stage('Generate Tag') {
