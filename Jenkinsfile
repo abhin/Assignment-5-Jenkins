@@ -3,10 +3,10 @@ def buildTag = ''
 def buildDockerImage(tag) {
     withCredentials([usernamePassword(credentialsId: 'docker-credentails', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
         sh """
-            docker build -t assnmnt5jenkins:${tag} .
+            docker build -t assnmntfivejenkins:${tag} .
             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-            docker tag assnmnt5jenkins:${tag} ${DOCKER_USER}/assnmnt5jenkins:${tag}
-            docker push ${DOCKER_USER}/assnmnt5jenkins:${tag}
+            docker tag assnmntfivejenkins:${tag} ${DOCKER_USER}/assnmntfivejenkins:${tag}
+            docker push ${DOCKER_USER}/assnmntfivejenkins:${tag}
         """
     }
 }
@@ -59,9 +59,8 @@ pipeline {
                 withCredentials([file(credentialsId: 'kubeconfig-creds', variable: 'KUBECONFIG')]) {
                     script {
                         sh """
-                            sed "s/IMAGE_TAG/${env.BUILD_TAG}/g" deployment.yaml > deployment-temp.yaml
-                            kubectl apply -f deployment-temp.yaml -n ${params.NAMESPACE}
-                            rm -f deployment-temp.yaml
+                            sed -i "s/IMAGE_TAG/${env.BUILD_TAG}/g" deployment.yaml
+                            kubectl apply -f deployment.yaml
                         """
                     }
                 }
