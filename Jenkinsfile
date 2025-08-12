@@ -1,7 +1,7 @@
 def buildTag = ''
 
 def buildDockerImage(tag) {
-    withCredentials([usernamePassword(credentialsId: 'docker-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+    withCredentials([usernamePassword(credentialsId: 'docker-credentails', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
         sh """
             docker build -t assnmnt5jenkins:${tag} .
             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
