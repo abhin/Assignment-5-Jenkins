@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assnmnt5jenkins-deployment  
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: assnmnt5jenkins
+  template:
+    metadata:
+      labels:
+        app: assnmnt5jenkins
+    spec:
+      containers:
+      - name: assnmnt5jenkins
+        image: abhin785/assnmnt5jenkins:IMAGE_TAG
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: assnmnt5jenkins-service
+spec:
+  selector:
+    app: assnmnt5jenkins
+  ports:
+    - protocol: TCP
+      port: 9090      
+      targetPort: 9090 
+  type: NodePort
