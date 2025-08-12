@@ -12,7 +12,7 @@ def buildDockerImage(tag) {
 }
 
 pipeline {
-    agent { label 'build-agent' }
+    agent { label 'built_agent' }
 
     parameters {
         string(name: 'NAMESPACE', defaultValue: 'default', description: 'Kubernetes namespace to deploy to')
